@@ -14,16 +14,13 @@ import pandas as pd
 
 from pvlib.location import Location
 
-# Relative paths to datasets and figures
-data_path = 'soras/feather'
-# figure_path = 'figurer_soras_hele'
-figure_path = 'figurer_soras'
+# Relative paths to figures
+# figure_path = 'figures/soras_hele'
+figure_path = 'figures/soras'
 
 # Import data
-data = feather.read_feather(f'{data_path}/soras_data')
-data_hour = feather.read_feather(f'{data_path}/soras_data_hour')
-data_maxhour = feather.read_feather(f'{data_path}/soras_data_maxhour')
-data_month = feather.read_feather(f'{data_path}/soras_data_month')
+data_hour = feather.read_feather('data/soras_data_hour')
+data_maxhour = feather.read_feather('data/soras_data_maxhour')
 
 # Define system parameters
 system_parameters_soras = pv_modelling.SystemParameters(name = 'Søråsjordet', 
@@ -36,10 +33,8 @@ system_parameters_soras = pv_modelling.SystemParameters(name = 'Søråsjordet',
                                                         date_end = '2022-12-31 23:59')
 
 # Implement dataset boundries
-data = data.loc[system_parameters_soras.date_start:system_parameters_soras.date_end]
 data_hour = data_hour.loc[system_parameters_soras.date_start:system_parameters_soras.date_end]
 data_maxhour = data_maxhour.loc[system_parameters_soras.date_start:system_parameters_soras.date_end]
-data_month = data_month.loc[system_parameters_soras.date_start:system_parameters_soras.date_end]
 
 # Define system location
 location_soras = Location(name='Søråsjordet', 
@@ -71,7 +66,7 @@ model_hour, model_maxhour, model_month \
     = pv_modelling.pv_model(system_parameters_soras, 
                             modules_soras, 
                             inverter_soras, 
-                            data, 
+                            data_hour, 
                             location_soras)
 
 clear_sky, clear_sky_maxhour, clear_sky_month \

@@ -130,10 +130,10 @@ glava_data_month['month'] = glava_data_month.index.month
 glava_data_month['year'] = glava_data_month.index.year
 
 # Save files in feather format
-feather.write_feather(glava_data, f'{glava_path}\\feather\\glava_data')
-feather.write_feather(glava_data_hour, f'{glava_path}\\feather\\glava_data_hour')
-feather.write_feather(glava_data_maxhour, f'{glava_path}\\feather\\glava_data_maxhour')
-feather.write_feather(glava_data_month, f'{glava_path}\\feather\\glava_data_month')
+# feather.write_feather(glava_data, f'{glava_path}\\feather\\glava_data')
+feather.write_feather(glava_data_hour, 'data/glava_data_hour')
+feather.write_feather(glava_data_maxhour, 'data/glava_data_maxhour')
+# feather.write_feather(glava_data_month, f'{glava_path}\\feather\\glava_data_month')
 
 
 

@@ -109,9 +109,9 @@ soras_data_month['month'] = soras_data_month.index.month
 soras_data_month['year'] = soras_data_month.index.year
 
 # Save dataframes as feather format
-feather.write_feather(soras_data, f'{soras_path}\\feather\\soras_data')
-feather.write_feather(soras_data_hour, f'{soras_path}\\feather\\soras_data_hour')
-feather.write_feather(soras_data_maxhour, f'{soras_path}\\feather\\soras_data_maxhour')
-feather.write_feather(soras_data_month, f'{soras_path}\\feather\\soras_data_month')
+# feather.write_feather(soras_data, f'{soras_path}\\feather\\soras_data')
+feather.write_feather(soras_data_hour, 'data/soras_data_hour')
+feather.write_feather(soras_data_maxhour, 'data/soras_data_maxhour')
+# feather.write_feather(soras_data_month, 'data/soras_data_month')
 
 print('Dataframes saved as feather format')

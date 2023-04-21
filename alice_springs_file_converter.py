@@ -186,9 +186,9 @@ dkasc_data_month['month'] = dkasc_data_month.index.month
 dkasc_data_month['year'] = dkasc_data_month.index.year
 
 # Save dataframes as feather format
-feather.write_feather(dkasc_data, f'{dkasc_path}\\feather\\dkasc_data')
-feather.write_feather(dkasc_data_hour, f'{dkasc_path}\\feather\\dkasc_data_hour')
-feather.write_feather(dkasc_data_maxhour, f'{dkasc_path}\\feather\\dkasc_data_maxhour')
-feather.write_feather(dkasc_data_month, f'{dkasc_path}\\feather\\dkasc_data_month')
+# feather.write_feather(dkasc_data, f'{dkasc_path}\\feather\\dkasc_data')
+feather.write_feather(dkasc_data_hour, 'data/dkasc_data_hour')
+feather.write_feather(dkasc_data_maxhour, 'data/dkasc_data_maxhour')
+# feather.write_feather(dkasc_data_month, f'{dkasc_path}\\feather\\dkasc_data_month')
 
 print('Dataframes saved as feather format')

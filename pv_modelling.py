@@ -159,7 +159,7 @@ def pv_model(system_parameters: SystemParameters, system_module: SystemModule, s
             eta_inv_nom, 
             eta_inv_ref
     data : df
-        Dataframe containing the weather parameters. Must contain:
+        Dataframe containing hourly weather data. Must contain:
             temp_air,
             G_tc,
             wind_speed
@@ -188,7 +188,7 @@ def pv_model(system_parameters: SystemParameters, system_module: SystemModule, s
     
     # Drop unecessary data and resample to hourly average
     weather_parameters = data.loc[system_parameters.date_start:system_parameters.date_end, 
-                                  ['temp_air', 'G_tc', 'wind_speed']].resample('h').mean()
+                                  ['temp_air', 'G_tc', 'wind_speed']]
     
     # Calculate cell temperature based on the Faiman model
     temp_cell = pvlib.temperature.faiman(weather_parameters['G_tc'], 

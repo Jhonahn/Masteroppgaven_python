@@ -13,15 +13,12 @@ import pandas as pd
 
 from pvlib.location import Location
 
-# Relative paths to datasets and figures
-data_path = 'glava/feather'
-figure_path = 'figurer_glava'
+# Relative paths to figures
+figure_path = 'figures/glava'
 
 # Import data
-data = feather.read_feather(f'{data_path}/glava_data')
-data_hour = feather.read_feather(f'{data_path}/glava_data_hour')
-data_maxhour = feather.read_feather(f'{data_path}/glava_data_maxhour')
-data_month = feather.read_feather(f'{data_path}/glava_data_month')
+data_hour = feather.read_feather('data/glava_data_hour')
+data_maxhour = feather.read_feather('data/glava_data_maxhour')
 
 # Define system parameters
 system_parameters_SMA = pv_modelling.SystemParameters(name = 'Glava Energy Center SMA', 
@@ -94,14 +91,14 @@ model_hour_SMA, model_maxhour_SMA, model_month_SMA \
     = pv_modelling.pv_model(system_parameters_SMA, 
                             modules_SMA, 
                             inverter_SMA, 
-                            data, 
+                            data_hour, 
                             location_glava)
 
 model_hour_ABB, model_maxhour_ABB, model_month_ABB \
     = pv_modelling.pv_model(system_parameters_ABB, 
                             modules_ABB, 
                             inverter_ABB, 
-                            data, 
+                            data_hour, 
                             location_glava)
 
 

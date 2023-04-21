@@ -13,15 +13,12 @@ import pandas as pd
 
 from pvlib.location import Location
 
-# Relative paths to datasets and figures
-data_path = 'alice_springs/feather'
-figure_path = 'figurer_dkasc'
+# Relative paths to figures
+figure_path = 'figures/dkasc'
 
 # Import data
-data = feather.read_feather(f'{data_path}/dkasc_data')
-data_hour = feather.read_feather(f'{data_path}/dkasc_data_hour')
-data_maxhour = feather.read_feather(f'{data_path}/dkasc_data_maxhour')
-data_month = feather.read_feather(f'{data_path}/dkasc_data_month')
+data_hour = feather.read_feather('data/dkasc_data_hour')
+data_maxhour = feather.read_feather('data/dkasc_data_maxhour')
 
 # Define system parameters
 system_parameters_dkasc = pv_modelling.SystemParameters(name = 'DKASC', 
