@@ -43,22 +43,22 @@ soras_north = pd.concat(dfs_north)
 soras_south = pd.concat(dfs_south)
 
 # Keep the required data and rename columns
-soras_north['dc_power_north'] = soras_north['Udc_N_Med'] * soras_north['Idc_N_Med']
-soras_south['dc_power_south'] = soras_south['Udc_S_Med'] * soras_south['Idc_S_Med']
+soras_north['dc_power_1'] = soras_north['Udc_N_Med'] * soras_north['Idc_N_Med']
+soras_south['dc_power_2'] = soras_south['Udc_S_Med'] * soras_south['Idc_S_Med']
 
 # Define conversion factor for DC power
 modules_per_string = 12
 
 # Scale DC power
-soras_north['dc_power_north'] = soras_north['dc_power_north'] * modules_per_string
-soras_south['dc_power_south'] = soras_south['dc_power_south'] * modules_per_string
+soras_north['dc_power_1'] = soras_north['dc_power_1'] * modules_per_string
+soras_south['dc_power_2'] = soras_south['dc_power_2'] * modules_per_string
 
 # Drop unnecessary columns
 soras_north = soras_north[['LT', 'GLOB', 'GLOB_PV', 'DIFF', 'BAL', 'UV', 
-                           'IR', 'VH', 'VR', 'T_N_Med', 'dc_power_north', 
+                           'IR', 'VH', 'VR', 'T_N_Med', 'dc_power_1', 
                            'Pac_N_Med', 'VA_N_Med', 'VAr_N_Med']]
 
-soras_south = soras_south[['T_S_Med', 'dc_power_south', 
+soras_south = soras_south[['T_S_Med', 'dc_power_2', 
                            'VA_S_Med', 'Pac_S_Med']]
 
 # Rename columns
@@ -109,9 +109,9 @@ soras_data_month['month'] = soras_data_month.index.month
 soras_data_month['year'] = soras_data_month.index.year
 
 # Save dataframes as feather format
-# feather.write_feather(soras_data, f'{soras_path}\\feather\\soras_data')
+feather.write_feather(soras_data, f'{soras_path}\\feather\\soras_data')
 feather.write_feather(soras_data_hour, 'data/soras_data_hour')
 feather.write_feather(soras_data_maxhour, 'data/soras_data_maxhour')
-# feather.write_feather(soras_data_month, 'data/soras_data_month')
+feather.write_feather(soras_data_month, 'data/soras_data_month')
 
 print('Dataframes saved as feather format')

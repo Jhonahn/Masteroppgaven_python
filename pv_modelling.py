@@ -188,12 +188,16 @@ def pv_model(system_parameters: SystemParameters, system_module: SystemModule, s
     
     # Drop unecessary data and resample to hourly average
     weather_parameters = data.loc[system_parameters.date_start:system_parameters.date_end, 
-                                  ['temp_air', 'G_tc', 'wind_speed']]
+                                 ['temp_air', 'G_tc', 'wind_speed']]
     
     # Calculate cell temperature based on the Faiman model
     temp_cell = pvlib.temperature.faiman(weather_parameters['G_tc'], 
                                          weather_parameters['temp_air'], 
                                          weather_parameters['wind_speed'])
+    
+    # Testing for uncertainty in cell/module temperature model
+    # temp_cell = temp_cell + 3.9 # Adding largest RMSE value
+    # temp_cell = temp_cell - 3.9 # Subtracting largest RMSE value
     
     # Estimate parameters for use in the CEC single diode model used below
     I_L_ref, I_o_ref, R_s, R_sh_ref, a_ref, Adjust \
@@ -347,7 +351,42 @@ def get_clear_sky_parameters(system_parameters: SystemParameters, location: Loca
 
 
 
-def model_RMSE(model_data_1: pd.Series, model_data_2: pd.Series, system_size_1: float, system_size_2: float, measured_data_1: pd.Series, measured_data_2: pd.Series) -> Tuple[pd.DataFrame]:
+def RMSE_values(model_data_1: pd.Series, model_data_2: pd.Series, measured_data_1: pd.Series, measured_data_2: pd.Series) -> Tuple[pd.DataFrame]:
+    """
+    Calculates the root mean squared error (RMSE) of two model series with respect to a measured dataframe.
+
+    Args:
+        model_data_1 (pandas.Series): The first model series.
+        model_data_2 (pandas.Series): The second model seires.
+        measured_data_1 (pandas.Series): The first measured data.
+        measured_data_2 (pandas.Series): The second measured data.
+
+    Returns:
+        Tuple[pandas.DataFrame]: A dataframe containing the RMSE of each model dataframe. 
+        The first value correspond to model_data_1 and the last value corresponds to model_data_2.
+    """
+    
+    # Calculate the squared differences between the models and the measured data
+    diff_1 = model_data_1 - measured_data_1
+    diff_2 = model_data_2 - measured_data_2
+    
+    # Calculate the MSE values
+    MSE_1 = (np.square(diff_1)).mean()
+    MSE_2 = (np.square(diff_2)).mean()
+    
+    # Calculate the RMSE values
+    RMSE_1 = np.sqrt(MSE_1)
+    RMSE_2 = np.sqrt(MSE_2)
+    
+    # Make dataframe
+    RMSE_df = pd.DataFrame({'RMSE_1': [RMSE_1],  
+                            'RMSE_2': [RMSE_2]})
+    
+    return RMSE_df
+
+
+
+def normalized_RMSE_values(model_data_1: pd.Series, model_data_2: pd.Series, system_size_1: float, system_size_2: float, measured_data_1: pd.Series, measured_data_2: pd.Series) -> Tuple[pd.DataFrame]:
     """
     Calculates the root mean squared error (RMSE) of two model series with respect to a measured dataframe.
 
@@ -390,6 +429,49 @@ def model_RMSE(model_data_1: pd.Series, model_data_2: pd.Series, system_size_1: 
 
 
 
+def pv_energy(model_data_1: pd.Series, model_data_2: pd.Series, measured_data_1: pd.Series, measured_data_2: pd.Series) -> Tuple[pd.DataFrame]:
+    """
+    Calculates the energy output and relative energy output of two model series with respect to a measured dataframe.
+
+    Args:
+        model_data_1 (pandas.Series): A pandas series containing the first model's predicted power output.
+        model_data_2 (pandas.Series): A pandas series containing the second model's predicted power output.
+        measured_data_1 (pandas.Series): A pandas series containing the first measured power output.
+        measured_data_2 (pandas.Series): A pandas series containing the second measured power output.
+
+    Returns:
+        Tuple[pandas.DataFrame]: A tuple containing a pandas dataframe with the energy output and relative energy output
+        of each model. The first two values correspond to model_data_1 and the last two values correspond to model_data_2.
+        The columns of the dataframe are as follows:
+        - energy_1: The measured energy output for system 1 in watthours.
+        - energy_1_model: The predicted energy output for system 1 in watthours.
+        - energy_1_relative: The ratio of measured energy output to predicted energy output for system 1.
+        - energy_2: The measured energy output for system 2 in watthours.
+        - energy_2_model: The predicted energy output for system 2 in watthours.
+        - energy_2_relative: The ratio of measured energy output to predicted energy output for system 2.
+    """
+    
+    # Calculate energy output for system 1
+    energy_1 = measured_data_1.sum()
+    energy_1_model = model_data_1.sum()
+    energy_1_relative = energy_1 / energy_1_model
+    
+    # Calculate energy output for system 2
+    energy_2 = measured_data_2.sum()
+    energy_2_model = model_data_2.sum()
+    energy_2_relative = energy_2 / energy_2_model
+    
+    # Make dataframe
+    energy_df = pd.DataFrame({'energy_1': [energy_1], 
+                              'energy_1_model': [energy_1_model],
+                              'energy_1_relative': [energy_1_relative],
+                              'energy_2': [energy_2], 
+                              'energy_2_model': [energy_2_model],
+                              'energy_2_relative': [energy_2_relative]})
+    
+    return energy_df
+
+
 
 def plot_results(path: str, model_results_1: pd.DataFrame, model_results_2: pd.DataFrame, clear_sky: pd.DataFrame, measured_results: pd.DataFrame) -> Tuple:
     """
@@ -428,6 +510,7 @@ def plot_results(path: str, model_results_1: pd.DataFrame, model_results_2: pd.D
         x=alt.X('time:T', title='Tid'),
         y=alt.Y('value:Q', title='Verdi'),
         color=alt.Color('key:N', title='Målepunkt (Enhet)'),
+        tooltip=['time:T','value:Q']
         ).transform_fold(['Strøm ved MPP (A)',
                           'Spenning ved MPP (V)',
                           'Uomformet effekt (W)',
@@ -444,6 +527,7 @@ def plot_results(path: str, model_results_1: pd.DataFrame, model_results_2: pd.D
         x=alt.X('time:T', title='Tid'),
         y=alt.Y('value:Q', title='Verdi'),
         color=alt.Color('key:N', title='Målepunkt (Enhet)'),
+        tooltip=['time:T','value:Q']
         ).transform_fold(['Strøm ved MPP (A)',
                           'Spenning ved MPP (V)',
                           'Uomformet effekt (W)',
@@ -458,6 +542,7 @@ def plot_results(path: str, model_results_1: pd.DataFrame, model_results_2: pd.D
         x=alt.X('time:T', title='Tid'),
         y=alt.Y('value:Q', title='Verdi'),
         color=alt.Color('key:N', title='Målepunkt (Enhet)'),
+        tooltip=['time:T','value:Q']
         ).transform_fold(['G_th skyfritt (w/m^2)', 
                           'G_b* skyfritt (w/m^2)', 
                           'G_dh skyfritt (w/m^2)', 
@@ -486,6 +571,7 @@ def plot_results(path: str, model_results_1: pd.DataFrame, model_results_2: pd.D
         x=alt.X('time:T', title='Tid'),
         y=alt.Y('value:Q', title='Verdi'),
         color=alt.Color('key:N', title='Målepunkt (Enhet)'),
+        tooltip=['time:T','value:Q']
         ).transform_fold(['Omformet effekt (W)', 
                           'Diffus innstråling på kollektor (W/m^2)', 
                           'Innstråling på kollektor (W/m^2)', 
@@ -508,6 +594,7 @@ def plot_results(path: str, model_results_1: pd.DataFrame, model_results_2: pd.D
         x=alt.X('time:T', title='Tid'),
         y=alt.Y('value:Q', title='Verdi'),
         color=alt.Color('key:N', title='Målepunkt (Enhet)'),
+        tooltip=['time:T','value:Q']
         ).transform_fold(['Omformet effekt (W)', 
                           'Diffus innstråling på kollektor (W/m^2)', 
                           'Innstråling på kollektor (W/m^2)', 
@@ -541,17 +628,33 @@ def plot_results(path: str, model_results_1: pd.DataFrame, model_results_2: pd.D
     view = base.add_selection(interval).properties(title='Valgvindu', width=800, height=50)
     graph = alt.vconcat(chart, view).save(f'{path}/innstraling.html')
     
+    # Measured wind speeds
+    base = alt.Chart(measured_results.rename(columns={'wind_speed':'Vindhastighet'})).mark_line().encode(
+        x=alt.X('time:T', title='Tid'),
+        y=alt.Y('value:Q', title='Vindhastighet (m/s)'),
+        # color=alt.Color('key:N', title='Anlegg'),
+        tooltip=['time:T','value:Q'],
+        ).transform_fold(['Vindhastighet']
+                         )
+                                                               
+    chart = base.encode(x=alt.X('time:T', scale=alt.Scale(domain=interval.ref()), title='Tid')
+                        ).properties(title='Målte vindhastigheter', width=800, height=300)
+    view = base.add_selection(interval).properties(title='Valgvindu', width=800, height=50)
+    graph = alt.vconcat(chart, view).save(f'{path}/vindhastigheter.html')
+    
     # Measured powers
     layer_1 = alt.Chart(measured_results.rename(columns={'ac_power_1':'Anlegg 1', 'ac_power_2':'Anlegg 2'})).mark_line().encode(
         x=alt.X('time:T', title='Tid'),
         y=alt.Y('value:Q', title='Effekt (W)'),
         color=alt.Color('key:N', title='Forklaring'),
+        tooltip=['time:T','value:Q']
         ).transform_fold(['Anlegg 1', 'Anlegg 2'])
     
     layer_2 = alt.Chart(measured_results.rename(columns={'G_tc':'Målt G_tc'})).mark_line(opacity=0.5).encode(
         x=alt.X('time:T', title='Tid'),
         y=alt.Y('value:Q', title='Innstrålt effekt (W/m^2)'),
         color=alt.Color('key:N', title='Forklaring'),
+        tooltip=['time:T','value:Q']
         ).transform_fold(['Målt G_tc'])
     
     base = layer_1 + layer_2            
@@ -566,12 +669,14 @@ def plot_results(path: str, model_results_1: pd.DataFrame, model_results_2: pd.D
         x=alt.X('time:T', title='Tid'),
         y=alt.Y('value:Q', title='Effekt (W)'),
         color=alt.Color('key:N', title='Effekt'),
+        tooltip=['time:T','value:Q']
         ).transform_fold(['Målt'])
     
     graph_2 = alt.Chart(model_results_1.rename(columns={'ac_power':'Modellert'})).mark_line().encode(
         x=alt.X('time:T', title='Tid'),
         y=alt.Y('value:Q', title='Effekt (W)'),
         color=alt.Color('key:N', title='Effekt'),
+        tooltip=['time:T','value:Q']
         ).transform_fold(['Modellert'])
     
     base = graph_2 + graph_1
@@ -584,12 +689,14 @@ def plot_results(path: str, model_results_1: pd.DataFrame, model_results_2: pd.D
         x=alt.X('time:T', title='Tid'),
         y=alt.Y('value:Q', title='Effekt (W)'),
         color=alt.Color('key:N', title='Effekt'),
+        tooltip=['time:T','value:Q']
         ).transform_fold(['Målt'])
                                          
     graph_2 = alt.Chart(model_results_2.rename(columns={'ac_power':'Modellert'})).mark_line().encode(
         x=alt.X('time:T', title='Tid'),
         y=alt.Y('value:Q', title='Effekt (W)'),
         color=alt.Color('key:N', title='Effekt'),
+        tooltip=['time:T','value:Q']
         ).transform_fold(['Modellert'])
     
     base = graph_2 + graph_1
@@ -602,13 +709,15 @@ def plot_results(path: str, model_results_1: pd.DataFrame, model_results_2: pd.D
     graph_1 = alt.Chart(measured_results.rename(columns={'ac_power_1':'Anlegg 1', 'ac_power_2':'Anlegg 2'})).mark_line().encode(
         x=alt.X('time:T', title='Tid'),
         y=alt.Y('value:Q', title='Effekt (W)'),
-        color='key:N'
+        color='key:N',
+        tooltip=['time:T','value:Q']
         ).transform_fold(['Anlegg 1', 'Anlegg 2'])
     
     graph_2 = alt.Chart(measured_results.rename(columns={'wind_speed':'Vindhastighet'})).mark_line(opacity=0.5).encode(
         x=alt.X('time:T', title='Tid'),
         y=alt.Y('value:Q', title='Vindhastighet (m/s)'),
         color=alt.Color('key:N', title='Forklaring'),
+        tooltip=['time:T','value:Q']
         ).transform_fold(['Vindhastighet'])
 
     base = graph_1 + graph_2
@@ -623,12 +732,14 @@ def plot_results(path: str, model_results_1: pd.DataFrame, model_results_2: pd.D
         x=alt.X('time:T', title='Tid'),
         y=alt.Y('value:Q', title='Avvik fra modell (W)'),
         color=alt.Color('key:N', title='Forklaring'),
+        tooltip=['time:T','value:Q']
         ).transform_fold(['Anlegg 1', 'Anlegg 2'])
     
     graph_2 = alt.Chart(measured_results.rename(columns={'wind_speed':'Vindhastighet'})).mark_line(opacity=0.5).encode(
         x=alt.X('time:T', title='Tid'),
         y=alt.Y('value:Q', title='Vindhastighet (m/s)'),
         color=alt.Color('key:N', title='Forklaring'),
+        tooltip=['time:T','value:Q']
         ).transform_fold(['Vindhastighet'])
     
     base = graph_1 + graph_2
@@ -801,7 +912,7 @@ def plot_results(path: str, model_results_1: pd.DataFrame, model_results_2: pd.D
         data=measured_results
     ).properties(title='Differanse modellert og målt effekt med vindhastighet')
     
-    graph.save(f'{path}/differanse_punktdiagram.html')
+    graph.save(f'{path}/differanse_punktdiagram_tetthet.html')
     
     # Point diagram with density charts
     # brush = alt.selection_interval()
@@ -877,19 +988,11 @@ def plot_results(path: str, model_results_1: pd.DataFrame, model_results_2: pd.D
         ).transform_fold(['difference_1', 'difference_2'])
     
     points = base.mark_point().encode(
-        # color=alt.condition(brush, 'År:N', alt.value('lightgray')),
         tooltip=['time:T', 'value:Q', 'wind_speed:Q']
         )
     
-    # .add_selection(
-    #         brush
-    #     )
-    # .transform_filter(
-    #     brush
-    # )
-    
     hist_x = base.mark_bar(opacity=0.5).encode(
-        y='count()',
+        y=alt.Y('count()', title='Forekomst'),
         x=alt.X('Vindhastighet:Q', 
                 bin=alt.BinParams(maxbins=20),
                 title='Vindhastighet')
@@ -898,7 +1001,7 @@ def plot_results(path: str, model_results_1: pd.DataFrame, model_results_2: pd.D
     )
     
     hist_y = base.mark_bar(opacity=0.5).encode(
-        x='count()',
+        x=alt.X('count()', title='Forekomst'),
         y=alt.Y('Avvik:Q', 
                 bin=alt.BinParams(maxbins=100),
                 title='Størrelse på avvik')
@@ -908,10 +1011,53 @@ def plot_results(path: str, model_results_1: pd.DataFrame, model_results_2: pd.D
         
     graph = alt.vconcat(
         hist_x,
-        alt.hconcat(
-            points,
-            hist_y)
+        alt.hconcat(points,
+                    hist_y,
+                    data=measured_results),
+        data=measured_results
     ).properties(title='Differanse modellert og målt effekt med vindhastighet')
     
     graph.save(f'{path}/differanse_punktdiagram_histogram.html')
     
+    # Punktdiagram differanse
+    base = alt.Chart(measured_results.rename(columns={'year': 'År'})).encode(
+        x=alt.X('wind_speed:Q', title='Vindhastighet (m/s)'),
+        y=alt.Y('value:Q', title='Størrelse på avvik (W)'),
+        color='År:N'
+        ).transform_fold(['difference_1', 'difference_2'])
+    
+    graph = base.mark_point().encode(
+        tooltip=['time:T', 'value:Q', 'wind_speed:Q']
+        )
+    
+    graph.save(f'{path}/differanse_punktdiagram.html')
+    
+    # Punktdiagram med regresjonslinje
+    base = alt.Chart(measured_results.rename(columns={'year': 'År'})).encode(
+        x=alt.X('wind_speed:Q', title='Vindhastighet (m/s)'),
+        y=alt.Y('value:Q', title='Størrelse på avvik (W)'),
+        color='År:N'
+        ).transform_fold(['difference_1', 'difference_2'])
+    
+    figure = base.mark_point().encode(
+        tooltip=['time:T', 'value:Q', 'wind_speed:Q']
+        )
+    
+    graph = figure + figure.transform_regression('wind_speed', 'value').mark_line()
+    
+    graph.save(f'{path}/differanse_punktdiagram_regresjon.html')
+
+    # Punktdiagram effekter
+    base = alt.Chart(measured_results.rename(columns={'year': 'År'})).encode(
+        x=alt.X('wind_speed:Q', title='Vindhastighet (m/s)'),
+        y=alt.Y('value:Q', title='Effekt (W)'),
+        color='År:N'
+        ).transform_fold(['ac_power_1', 'ac_power_2'])
+    
+    figure = base.mark_point().encode(
+        tooltip=['time:T', 'value:Q', 'wind_speed:Q']
+        )
+
+    graph = figure + figure.transform_regression('wind_speed', 'value').mark_line()
+    
+    graph.save(f'{path}/effekter_punktdiagram.html')

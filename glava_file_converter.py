@@ -130,67 +130,9 @@ glava_data_month['month'] = glava_data_month.index.month
 glava_data_month['year'] = glava_data_month.index.year
 
 # Save files in feather format
-# feather.write_feather(glava_data, f'{glava_path}\\feather\\glava_data')
+feather.write_feather(glava_data, f'{glava_path}\\feather\\glava_data')
 feather.write_feather(glava_data_hour, 'data/glava_data_hour')
 feather.write_feather(glava_data_maxhour, 'data/glava_data_maxhour')
-# feather.write_feather(glava_data_month, f'{glava_path}\\feather\\glava_data_month')
+feather.write_feather(glava_data_month, f'{glava_path}\\feather\\glava_data_month')
 
 
-
-
-#%% Old useless code
-
-
-# Different function. Forgot the difference from the new one...
-# def read_glava_data_old(directory_path, system_folder):
-#     """
-#     Reads in Glava data from a given directory path and returns a Pandas DataFrame.
-
-#     Args:
-#         directory_path (str): Path to directory containing Glava data.
-#         system (str): Name of the folder containing the system Excel files
-
-#     Returns:
-#         pandas.DataFrame: DataFrame containing Glava data.
-#     """
-#     start_time = time.time()
-    
-#     # Define system_path
-#     system_path = os.path.join(directory_path, system_folder)
-
-#     # Make an empty dataframe
-#     glava_dataframes = []
-
-#     # Iterate over files in the directory
-#     for filename in os.listdir(system_path):
-#         # Read Excel file, parse datetime column, and resample to minute frequency
-#         dict_temp = pd.read_excel(os.path.join(system_path, filename),
-#                                 sheet_name=['Totaleffekt', 'Generella ingångar'],
-#                                 parse_dates={'datetime': ['Tidpunkt']},
-#                                 index_col='datetime')
-#         # Combine dictionary to a dataframe and resample
-#         df_temp = pd.concat(dict_temp.values()).resample('min').median()
-#         # Append the resampled dataframe to the main dataframe
-#         glava_dataframes.append(df_temp)
-
-#         # Print status message
-#         print(f"{filename} added to the dataframe")
-    
-#     glava_data = pd.concat(glava_dataframes)
-
-
-#     # Report elapsed time
-#     end_time = time.time()
-#     elapsed_time = round(end_time - start_time)
-#     print(f"It took {elapsed_time} seconds to read the {system_folder} Excel files")
-
-#     return glava_data
-
-
-# Using a smaller set of data to test function
-# glava_ABB_temp = read_glava_data_test(glava_path, 'ABB_temp')
-# glava_ABB_temp.rename(columns={'Ptot (W)': 'active_power_ABB',
-#                           'GI1': 'wind_direction',
-#                           'GI2': 'precipitation',
-#                           'GI3': 'Ukjent ABB 1',
-#                           'GI4': 'Ukjent ABB 2'}, inplace=True)

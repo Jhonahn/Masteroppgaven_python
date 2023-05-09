@@ -8,8 +8,6 @@ Created on Fri Feb 24 16:52:16 2023
 import pyarrow.feather as feather
 import pv_modelling
 import altair as alt
-import numpy as np
-import pandas as pd
 
 from pvlib.location import Location
 
@@ -107,16 +105,26 @@ clear_sky, clear_sky_maxhour, clear_sky_month \
                                             location_glava)
 
 # Find RMSE values of modelled and measured data
-RMSE_values = pv_modelling.model_RMSE(model_hour_SMA['ac_power'], 
-                                      model_hour_ABB['ac_power'],
-                                      inverter_SMA.pdc0,
-                                      inverter_ABB.pdc0,
-                                      data_hour['ac_power_1'],
-                                      data_hour['ac_power_2'])
+RMSE_values_power = pv_modelling.normalized_RMSE_values(model_hour_SMA['ac_power'], 
+                                                        model_hour_ABB['ac_power'],
+                                                        inverter_SMA.pdc0,
+                                                        inverter_ABB.pdc0,
+                                                        data_hour['ac_power_1'],
+                                                        data_hour['ac_power_2'])
+
+RMSE_values_active_power = pv_modelling.normalized_RMSE_values(model_hour_SMA['ac_power'], 
+                                                               model_hour_ABB['ac_power'],
+                                                               inverter_SMA.pdc0,
+                                                               inverter_ABB.pdc0,
+                                                               -data_hour['ac_power_1'],
+                                                               -data_hour['ac_power_2'])
 
 # Calculate difference from model
-data_maxhour['difference_1'] = model_maxhour_SMA['ac_power'] - data_maxhour['ac_power_1']
-data_maxhour['difference_2'] = model_maxhour_ABB['ac_power'] - data_maxhour['ac_power_2']
+data_hour['difference_1'] = model_hour_SMA['ac_power'] - data_hour['ac_power_1']
+data_hour['difference_2'] = model_hour_ABB['ac_power'] - data_hour['ac_power_2']
+
+data_maxhour['difference_1'] = data_hour['difference_1'].resample('d').mean()
+data_maxhour['difference_2'] = data_hour['difference_2'].resample('d').mean()
 
 # Use plotting function to make plots
 pv_modelling.plot_results(figure_path, 
@@ -125,21 +133,23 @@ pv_modelling.plot_results(figure_path,
                           clear_sky_maxhour, 
                           data_maxhour)
 
-#%% Analyse wind data
+#%% Checking hourly values
 
-# Define interval selection
-interval = alt.selection_interval(encodings=['x'])
-
-# Plot measured wind speeds
-base = alt.Chart(data_maxhour.rename(columns={'wind_speed':'Vindhastighet'})).mark_line().encode(
+graph = alt.Chart(data_maxhour.rename(columns={'ac_power_2':'Målt effekt ABB'})).mark_line().encode(
     x=alt.X('time:T', title='Tid'),
-    y=alt.Y('value:Q', title='Vindhastighet (m/s)'),
-    # color=alt.Color('key:N', title='Anlegg'),
-    tooltip=['time:T','value:Q'],
-    ).transform_fold(['Vindhastighet']
-                     )
+    y=alt.Y('value:Q', title='Effekt (W)'),
+    color=alt.Color('key:N', title='Effekt'),
+    ).transform_fold(['Målt effekt ABB']
+                     ).properties(title='Alle målte effekter ABB', width=800, height=300)
                                                            
-chart = base.encode(x=alt.X('time:T', scale=alt.Scale(domain=interval.ref()), title='Tid')
-                    ).properties(title='Målte vindhastigheter', width=800, height=300)
-view = base.add_selection(interval).properties(title='Valgvindu', width=800, height=50)
-graph = alt.vconcat(chart, view).save(f'{figure_path}/vindhastigheter.html')
+graph.save(f'{figure_path}/effekt_ABB.html')
+
+
+graph = alt.Chart(data_hour.rename(columns={'ac_power_2':'Målt effekt ABB'})).mark_line().encode(
+    x=alt.X('time:T', title='Tid'),
+    y=alt.Y('value:Q', title='Effekt (W)'),
+    color=alt.Color('key:N', title='Effekt'),
+    ).transform_fold(['Målt effekt ABB']
+                     ).properties(title='Alle målte effekter ABB timesverdier', width=800, height=300)
+                                                           
+graph.save(f'{figure_path}/effekt_ABB_timesvedier.html')
