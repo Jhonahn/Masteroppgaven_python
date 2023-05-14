@@ -59,7 +59,7 @@ modules_soras = pv_modelling.SystemModule(name = 'SweModule Inceptio 250F',
 
 # Define inverter parameters
 inverter_soras = pv_modelling.SystemInverter(name = 'Fronius Primo 3.0',
-                                              pdc0 = 3000,             
+                                              pdc0 = 4500,             
                                               eta_inv_nom = 0.961)
 
 # For checking uncertainties
@@ -97,15 +97,15 @@ clear_sky, clear_sky_maxhour, clear_sky_month \
 # Find RMSE values of modelled and measured power data
 RMSE_values_power = pv_modelling.normalized_RMSE_values(model_hour['ac_power'], 
                                                         model_hour['ac_power'], 
-                                                        inverter_soras.pdc0,
-                                                        inverter_soras.pdc0,
+                                                        3000,
+                                                        3000,
                                                         data_hour['ac_power_1'],
                                                         data_hour['ac_power_2'])
 
 RMSE_values_active_power = pv_modelling.normalized_RMSE_values(model_hour['ac_power'], 
                                                                model_hour['ac_power'],
-                                                               inverter_soras.pdc0,
-                                                               inverter_soras.pdc0,
+                                                               3000,
+                                                               3000,
                                                                -data_hour['active_power_1'],
                                                                -data_hour['active_power_2'])
 
@@ -173,16 +173,24 @@ graph.save(f'{figure_path}/alle_effekter_sondre_timesvedier.html')
 interval = alt.selection_interval(encodings=['x'])
 
 # Plot measured temperatures
-base = alt.Chart(data_maxhour.rename(columns={'temp_module_1':'Nordre', 
-                                                     'temp_module_2':'Søndre',
-                                                     'temp_air':'Lufttemperatur'})).mark_line().encode(
+layer_1 = alt.Chart(data_maxhour.rename(columns={'temp_module_1':'Nordre', 
+                                                 'temp_module_2':'Søndre',
+                                                 'temp_air':'Lufttemperatur'})).mark_line().encode(
     x=alt.X('time:T', title='Tid'),
     y=alt.Y('value:Q', title='Temperatur (grader Celsius)'),
     color=alt.Color('key:N', title='Anlegg'),
     tooltip=['time:T','value:Q'],
     ).transform_fold(['Nordre', 'Søndre', 'Lufttemperatur']
                      )
-                                                           
+
+# layer_2 =  alt.Chart(model_maxhour.rename(columns={'temp_cell':'Modellert'})).mark_line().encode(
+#     x=alt.X('time:T', title='Tid'),
+#     y=alt.Y('value:Q', title='Temperatur (grader Celsius)'),
+#     color=alt.Color('key:N', title='Anlegg'),
+#     tooltip=['time:T','value:Q'],
+#     )
+
+base = layer_1 # + layer_2                                    
 chart = base.encode(x=alt.X('time:T', scale=alt.Scale(domain=interval.ref()), title='Tid')
                     ).properties(title='Målte temperaturer på Søråsjordet', width=800, height=300)
 view = base.add_selection(interval).properties(title='Valgvindu', width=800, height=50)
